@@ -1,51 +1,34 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
+# This is the part from your image.
+# It names the workflow "Docker CI/CD".
+# It triggers the workflow on a 'push' event to the 'feature/add-test' branch.
+name: Docker CI/CD
+on:
+  push:
+    branches:
+      - feature/add-test
 
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
-services:
-  server:
-    build:
-      context: .
-    environment:
-      NODE_ENV: production
-    ports:
-      - 3000:3000
+# The rest of the file defines the actual steps (jobs) to perform.
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checks out your repository's code so the workflow can access it.
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-# The commented out section below is an example of how to define a PostgreSQL
-# database that your application can use. `depends_on` tells Docker Compose to
-# start the database before your application. The `db-data` volume persists the
-# database data between container restarts. The `db-password` secret is used
-# to set the database password. You must create `db/password.txt` and add
-# a password of your choosing to it before running `docker-compose up`.
-#     depends_on:
-#       db:
-#         condition: service_healthy
-#   db:
-#     image: postgres
-#     restart: always
-#     user: postgres
-#     secrets:
-#       - db-password
-#     volumes:
-#       - db-data:/var/lib/postgresql/data
-#     environment:
-#       - POSTGRES_DB=example
-#       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
-#     expose:
-#       - 5432
-#     healthcheck:
-#       test: [ "CMD", "pg_isready" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-# volumes:
-#   db-data:
-# secrets:
-#   db-password:
-#     file: db/password.txt
+      # Step 2: Logs in to Docker Hub using the secrets you created earlier.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
+      # Step 3: Builds the Docker image and pushes it to your Docker Hub repository.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: |
+            docker login -u iamkrk11/sample-node-project:latest
+            docker login -u iamkrk11/sample-node-project:${{ github.sha }}
